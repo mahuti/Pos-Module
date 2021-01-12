@@ -14,21 +14,21 @@
 // This module can also be used in tandem with the PreserveArt (and similar) modules 
 //
 // Usage:
-// 
-// fe.load_module("pos"); 
-// fe.load_module("preserve-art"); 
 //
-// /* create an array containing any values you want to set. You only need to pass the items you want. Any item not passed in will use a default */ 
+// create an array containing any values you want to set. You only need to pass the items you want. Any item not passed in will use a default 
+// you can use multiple instances. I use one for scaled and one for stretched items. This example will generate stretched values
 
+// fe.load_module("pos"); 
+//
 // local posData =  {
 //     base_width = 480.0, /* the width of the layout as you designed it */ 
 //     base_height = 640.0, /* the height of the layout as you designed it */ 
 //     layout_width = fe.layout.width, /* usually not necessary, but allows you to override the layout width and height */ 
 //     layout_height = fe.layout.height, 
 //     rotate = 90, /* setting to 90, -90 will rotate the layout, otherwise leave at 0 */  
-//     scale= "stretch" /* stretch, scale, none. Stretch scales without preserving aspect ratio. Scale preserves aspect ratio 
+//     scale= "stretch" /* stretch, scale, none. Stretch scales without preserving aspect ratio. Scale preserves aspect ratio */
 // }
-
+//
 // local pos = Pos(posData)
 // 
 //	local vid = fe.add_artwork( "snap", pos.x(10), pos.y(20), pos.width(480), pos.height(640) ); /* my design file shows the image 10x, 20y, 480wide, 640tall */	
@@ -39,6 +39,8 @@
 //  
 //  /* used with PreserveArt/PreserveImage */ 
 // 
+// fe.load_module("preserve-art");  
+//
 // local bg = PreserveImage( "image.png", pos.x(20), pos.y(20), pos.width(300), pos.height(400) );
 // bg.set_fit_or_fill( "fill" );
 // bg.set_anchor( ::Anchor.Top );
@@ -230,6 +232,23 @@ class Pos
         }
         return num * yconv
     }
+    
+    /*
+        set_font_height is used to adjust text objects to use relatively scaled type
+        
+        height= height of your type in your design
+        text_object = name of a text object you've already created
+        text_align = how the type should be aligned in your text object (uses standard AM alignment names)
+        text_margin = if you'd like a margin set, add it, otherwise this defaults to zero
+        
+        Example usage: 
+        create a text object. THEN call something like this: 
+        
+        pos.set_font_height(24,my_text_label, "Centre")
+        
+        This will create a relatively sized text object with have margins removed and the text aligned to it's vertical and horizontal center
+        
+    */ 
     function set_font_height(height, text_object, text_align="TopLeft" , text_margin=0)
     {
         if ( typeof text_object == typeof fe.Text())
@@ -271,6 +290,15 @@ class Pos
         }
         return false
     }
+    
+    /*
+        charsize is used to set a relative typesize for an existing text object
+        
+        example usage: 
+        
+        local info_text = fe.add_text("Hello World", pos.x(10), pos.y(10), pos.width(100), pos.height(100))
+        info_text.charsize = pos.charsize(18)
+    */ 
     function charsize(num)
     {
         local gs = num * yconv * charsize_conv
@@ -280,8 +308,11 @@ class Pos
     /* 
     get x position converted to a scaled value using conversion factor
     
-    use anchor="right" to offset the left edge from the width 
-    combine with object_width to offset the right edge of the object (num) pixels from right side of screen
+    use anchor="right" to calculate distance from the right edge of the screen instead of the left (which is the default)
+    use anchor="middle" or "centre" to calculate a middle position
+    Pass in the object you're working with, and the object_container 
+        (sorry... that's a badly named variable that means: "second object you want to align your first object against")
+        Passing those 2 objects will return an x position value for the first object relative to the second object
     */ 
     
     function x( num, anchor="left", object = null, object_container=null )
@@ -302,7 +333,7 @@ class Pos
         }
         else if (object != null)
         {
-            object_width = object.tofloat()
+            object_width = object.tofloat() * xconv
         }
         
         
@@ -316,9 +347,9 @@ class Pos
                 printLine("object container is: ", typeof object_container)
             }
         }
-        else if (object != null)
+        else if (object_container != null)
         {
-            object_container_x = object_container.tofloat()
+            object_container_x = object_container.tofloat() * xconv
         }
         
         if (anchor == "right")
@@ -334,9 +365,24 @@ class Pos
         }
         else 
         {
+            if (object_container != null)
+            {
+                return object_container_width + object_container_x + (num*xconv)
+            }
+             
            return num * xconv
         }
     }
+    
+    /* 
+    get y position converted to a scaled value using conversion factor
+    
+    use anchor="bottom" to calculate distance from the bottom edge of the screen instead of the top (which is the default)
+    use anchor="middle" or "centre" to calculate a middle position
+    Pass in the object you're working with, and the object_container 
+        (sorry... that's a badly named variable that means: "second object you want to align your first object against")
+        Passing those 2 objects will return a y position value for the first object relative to the second object
+    */ 
     
     function y( num, anchor="top", object = null, object_container=null )
     {
@@ -356,7 +402,7 @@ class Pos
         }
         else if (object != null)
         {
-            object_height = object.tofloat()
+            object_height = object.tofloat() * yconv
         }
         
         
@@ -370,9 +416,9 @@ class Pos
                 printLine("object_container_y is: ", typeof object_container_y)
             }
         }
-        else if (object != null)
+        else if (object_container != null)
         {
-            object_container_y = object_container.tofloat()
+            object_container_y = object_container.tofloat() * yconv
         }
         
         if (anchor == "bottom")
@@ -388,6 +434,11 @@ class Pos
         }
         else 
         {
+            if (object_container != null)
+            {
+                return object_container_height + object_container_y + (num*yconv)
+            }
+             
            return num * yconv
         }
     }
