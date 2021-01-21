@@ -4,12 +4,13 @@ The Pos (Layout Scaling) Module module for AttractMode helps position, scale or 
 
 ## Installation
 
-Add module to the modules folder of AttractMode (make sure the correct permissions are set on the folder so that AttractMode can see the newly added module). Start (or restart) AttractMode.
+Add the module file to the modules folder of AttractMode (make sure the correct permissions are set on the folder so that AttractMode can see the newly added module). Start (or restart) AttractMode.
 
 ## Use
 
-Multiple instances of the positioning module can be used. This can be useful for calculating both scaled and stretched values where some objects should be scaled and some just stretched. 
+Multiple instances of the positioning module can be used. This can be useful for calculating both scaled and stretched values where some objects should be scaled and some just stretched. Multiple instances can be used together in one command... for instance a stretched x & y combined with scaled width and height. Typically I use scaling for all critical visual elements and stretching for colored objects or surfaces.
 
+    ```c++
     fe.load_module("pos"); 
 
     // create an array containing any values you want to set. You only need to pass the items you want. Any item not passed in will use a default */ 
@@ -21,10 +22,11 @@ Multiple instances of the positioning module can be used. This can be useful for
          layout_height = fe.layout.height, 
          rotate = 90, /* setting to 90, -90 will rotate the layout, otherwise leave at 0 */  
          scale= "stretch" /* stretch, scale, none. Stretch scales without preserving aspect ratio. Scale preserves aspect ratio 
+         debug="false" /* set to true if you need to see more information about values being passed around in the module */ 
     }
     local pos = Pos(posData)
 
-    /* the calculations below we made using a file 480x640 (tall) but the pos module will adjust those values relative to where they'd be in a 640x480 (or any other sized) layout automatically */ 
+    /* the calculations below were made using a file 480x640 (tall) but the pos module will adjust those values relative to where they'd be in a 640x480 (or any other sized) layout automatically */ 
     local vid = fe.add_artwork( "snap", pos.x(10), pos.y(20), pos.width(480), pos.height(640) ); /* my design file shows the image 10x, 20y, 480wide, 640tall */	
     vid.preserve_aspect_ratio = false;
 
@@ -37,73 +39,94 @@ Multiple instances of the positioning module can be used. This can be useful for
     local bg = PreserveImage( "image.png", pos.x(20), pos.y(20), pos.width(300), pos.height(400) );
     bg.set_fit_or_fill( "fill" );
     bg.set_anchor( ::Anchor.Top );
-
+    ``` 
+    
 ### Methods
 
 #### X Position
-x( num, anchor="left", object = null, object_container=null )
+x( num, anchor="left", object = null, object_container=null,align_to="left" )
 returns float value 
 
-##### Parameters
+##### Parameters (for both x & y methods)
 
-num = x value as originally designed. This is the position relative to the canvas or to an object_container
-
-anchor = left/right/middle(or centre) If an anchor other than the default "left" is provided, you should also provide the object so that it's current width can be used to determine it's position relative to other objects, or the layout canvas. 
-
-object = text object, image object, or float value of the object's current x position. You only need to pass the object or object's x value if you're using right or centre positioning.
-
-object_container = text oject, image object or float value of the object container's width. You only need to pass the object_container or object_container's width if you're using right or centre positioning. The default value is the width of the page 
-
+    type:string 
+        acceptable values x,y
+    
+    num:float/int
+    
+    anchor: string  
+        acceptable values: left,right,center,centre,middle,top,bottom
+        anchor position of the object, or if object is not available, postion relative to screen
+    
+    object: float/int/object
+        acceptable values: 
+            object:  if an object is present, it will be positioned relative to the screen
+            float/int: will be used in place of object's width/height. xy coordinate assumed to be 0
+            
+    relative_object: float/int/object
+        acceptable values: 
+            object: if an relative_object is present, the object will be positioned relative to this instead of the screen
+            float/int: will be used in place of relative_object's width/height. xy coordinate assumed to be 0
+         
+    align_to: string
+        acceptible values: left,right,center,centre,middle,top,bottom
+        if an object is present, it will be aligned relative to relative_object (if available) otherwise to the screen
+        Using this, you could set the anchor to the left of object1, and align the left of the object with the right of the object2
+ 
 
 #### Y Position 
-y( num, anchor="top", object = null, object_container=null )
+y( num, anchor="top", object = null, object_container=null,align_to="top" )
 returns float value
 
-##### Parameters
-num = y value as originally designed. This is the position relative to the canvas or to an object_container
-
-anchor = top/bottom/middle(or centre) If an anchor other than the default "top" is provided, you should also provide the object so that it's current height can be used to determine it's position relative to other objects, or the layout canvas. 
-
-object = text object, image object, or float value of the object's current y position. You only need to pass the object or object's y value if you're using bottom or centre positioning.
-
-object_container = text oject, image object or float value of the object container's height. You only need to pass the object_container or object_container's height if you're using bottom or centre positioning. The default value is the height of the page 
+same details as x method
 
 #### Width
-width(number, allow_stretch = true)
+width(number)
 returns float value 
 
 ##### Parameters
 number = width value as originally designed. 
 
-allow_stretch = if the instance of pos is set to allow stretching, then this can override it
-
 #### Height
-height(number, allow_stretch = true)
-returns float value 
+height(number)
 
-##### Parameters
-number = height value as originally designed. 
+same details as width method
 
-allow_stretch = if the instance of pos is set to allow stretching, then this can override it
- 
 #### Set Font Height
-this will set several parameters on a font so that it's positioning and size is very easily calcuable. 
-It removes margin, sets alignment and a scaled charsize. Alignment and margin can be overriden if necessary.
+This will set several parameters on a font so that its positioning and size is very easily calcuable. 
+It removes margin, sets alignment and a scaled charsize. Alignment and margin can be overriden if necessary. By default this module assumes that most designs were created for a 4:3 or 16:9 layout. Fonts will be scaled slightly smaller on vertical screens, so if your design is vertical, you may need to bump this value up a bit. 
 
 set_font_height(font_height, text_object, text_align="TopLeft" , text_margin=0)
 returns false
 
 ##### Parameters
-font_height = used to set charsize based on scaled values
+font_height = number used to set charsize based on scaled values
 
 text_object = this is the object that should be manipulated
 
 text_align = uses AttractMode's default alignment values TopLeft, TopCentre, TopRight, etc to set the positioning of the text relative to the text object
 
-text_margin = padding normally present around text_object. Set to 0 by default here
+text_margin = padding normally present around text_object. Set to 0 by default
 
 #### Charsize
 charsize(number)
 returns integer
 
-Returns a scaled value to use in text_object.charsize 
+Returns a scaled value to use in text_object.charsize. By default this module assumes that most designs were created for a 4:3 or 16:9 layout. Fonts will be scaled slightly smaller on vertical screens, so if your design is vertical, you may need to bump this value up a bit. 
+
+### Examples
+
+    local box = fe.add_image("boxpic.png", 0, scalepos.y(30), scalepos.width(1708), scalepos.height(2004)) /* this positions & scales the box */ 
+    box.x = scalepos.x(-600,"left",box,null,"right")  /* aligns the left edge of the object with the right edge of the screen, and positions it -600 (scaled) pixels from the right edge
+
+    if (wheel != null){
+        box.y = scalepos.y(-400,"top",box,wheel,"bottom") /*  this positions the top of the box -400 (scaled) pixels above the bottom of the wheel
+    }
+    else
+    {
+        box.y = scalepos.y(-400,"top",box,null,"bottom") /*  this positions the top of the box -400 (scaled) pixels above the bottom of the screen
+    }
+    
+    
+    playtime = fe.add_text("Playtime: [PlayedTime] [Name]", pos.x(14),0, pos.width(800), pos.height(108))
+    pos.set_font_height(25,playtime, "BottomLeft") /* this sets the playtime font height to 25 (scaled) pixels, with no margins, aligned to the bottom left of the text object

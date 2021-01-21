@@ -35,7 +35,7 @@
 //	vid.preserve_aspect_ratio = false;
 //
 // 	local instruction_card = fe.add_image("instruction_card_bg.png" , pos.x(10), pos.y(20), pos.width(1440), pos.height(1080));
-//	instruction_card.x = pos.x(272, "right", instruction_card.width); /* this is for an image whos right edge is 272 pixels from the right edge of my design */ 
+//	instruction_card.x = pos.x(272, "right", instruction_card.width); /* this is for an image whose right edge is 272 pixels from the right edge of my design */ 
 //  
 //  /* used with PreserveArt/PreserveImage */ 
 // 
@@ -65,17 +65,12 @@ class Pos
     pos_debug = false
     xconv = 1
     yconv = 1
-    nostretch_xconv = 1
-    nostretch_yconv = 1
     pos_scale = "stretch"
-    pos_layout_width = 640.0
-    pos_layout_height = 480.0
+    pos_layout_width = ::fe.layout.width
+    pos_layout_height = ::fe.layout.height
     pos_base_width = 640.0
     pos_base_height = 480.0
     pos_rotate = 0
-    charsize_conv = 1
-    width_to_height_ratio = 1
-    font_scale = 1
     
     constructor( properties )
     {
@@ -114,79 +109,34 @@ class Pos
                         break
                 }
             }
-            catch(e) { if (pos_debug) printL("Error setting property: " + key); } 
+            catch(e) { if (pos_debug) printLine("Error setting property: " + key); } 
         }
-
-        if (pos_rotate.tofloat() != 0)
-        {
-            if (::fe.layout.orient  == 0 ) // only do anything if it's not already rotated
-            {
-                local templayout_w = pos_layout_width
-                local templayout_h = pos_layout_height
-                ::fe.layout.width = pos_layout_width = templayout_h
-                ::fe.layout.height= pos_layout_height = templayout_w
-
-                if (pos_rotate==90)
-                {
-                    ::fe.layout.orient=RotateScreen.Right
-                }
-                else
-                {
-                    ::fe.layout.orient=RotateScreen.Left
-                }
-            }
-        }
-
+        
+        rotate(pos_rotate)
+            
         // width conversion factor
         xconv = pos_layout_width / pos_base_width 
-        nostretch_xconv = xconv
         
         // height conversion factor
         yconv = pos_layout_height / pos_base_height
-        nostretch_yconv = yconv
-
-        // width to height
-        width_to_height_ratio = pos_layout_width / pos_layout_height
-        if (width_to_height_ratio <= 1 )
-        {
-            charsize_conv = width_to_height_ratio
-        }
             
         if (pos_scale=="scale")
         {
             if (pos_layout_width > pos_layout_height)
             {
                 xconv = yconv 
-                nostretch_xconv = yconv
             }
             else
             {
                 yconv = xconv 
-                nostretch_yconv = xconv
             }
-         
         }
         if (pos_scale=="none")
         {
             xconv = 1 
             yconv = 1
-            nostretch_xconv = 1
-            nostretch_yconv = 1
         }
-        if (pos_scale=="stretch")
-        {
-            if (pos_layout_width > pos_layout_height)
-            {
-                nostretch_xconv = yconv
-            }
-            else
-            {
-                nostretch_yconv = xconv
-            }
-        }
-        
-        printLine("nostretch_xconv", nostretch_xconv)
-        printLine("nostretch_yconv", nostretch_yconv)
+    
         printLine("xconv", xconv)
         printLine("yconv", yconv)
 
@@ -199,37 +149,45 @@ class Pos
             {
                 lineheader = "key" 
             }
-            print(lineheader + ": " + x + " \n")            
+            print("\n"+lineheader + ": " + x + " \n")            
         }
     }
 
+    
+    function rotate(rotation)
+    {
+        if (rotation.tofloat() != 0)
+        {
+            if (::fe.layout.orient  == 0 ) // only do anything if it's not already rotated
+            {
+                local templayout_w = pos_layout_width
+                local templayout_h = pos_layout_height
+                ::fe.layout.width = pos_layout_width = templayout_h
+                ::fe.layout.height= pos_layout_height = templayout_w
+
+                if (rotation==90)
+                {
+                    ::fe.layout.orient=RotateScreen.Right
+                }
+                else
+                {
+                    ::fe.layout.orient=RotateScreen.Left
+                }
+            }
+        }  
+        return false
+    }
+    
     // get a width value converted using conversion factor
     // allow_stretch=false will cause the value to use the scaling, not stretching values. Handy when an item shouldn't be stretched (like a Logo)
-    function width(num, allow_stretch=true )
+    function width(num)
     {	
-        if (!allow_stretch)
-        {
-            return num * nostretch_xconv
-        }
-        else if (allow_stretch == "y")
-        {
-            return num * yconv
-        }
         return num * xconv
     }
 
     // get a height value converted using conversion factor
-    // allow_stretch=false will cause the image to scale height, without stretching. This is useful for backgrounds that don't need to line up perfectly with the content. 
-    function height ( num, allow_stretch=true)
+    function height ( num)
     {
-        if (!allow_stretch)
-        {
-            return num * nostretch_yconv 
-        } 
-        else if (allow_stretch == "x")
-        {
-            return num * xconv
-        }
         return num * yconv
     }
     
@@ -256,6 +214,8 @@ class Pos
             text_object.charsize = charsize(height)
             text_object.margin=0
             
+            // printLine("fontstuff", text_object.glyph_size)
+
             if (text_margin){
                  text_object.margin=text_margin
             }   
@@ -301,146 +261,212 @@ class Pos
     */ 
     function charsize(num)
     {
+        local charsize_conv = 1
+        local wth = pos_layout_width / pos_layout_height // vertical screens
+            
+        if ( wth <=1 )
+        {
+            charsize_conv = wth
+        }
         local gs = num * yconv * charsize_conv
         return gs.tointeger()
     }
+    
+    function x(num, anchor="left", object = null, relative_object= null, align_to=null)
+    {
+       return xy(num, anchor, object, relative_object,"x",align_to)
+    }
+    
+    function y(num, anchor="top", object = null, relative_object= null, align_to=null)
+    {
+        return xy(num, anchor, object, relative_object,"y",align_to)
+    }
+    /* 
+    get x or y position converted to a scaled value using conversion factor
 
-    /* 
-    get x position converted to a scaled value using conversion factor
+    num:float/int
     
-    use anchor="right" to calculate distance from the right edge of the screen instead of the left (which is the default)
-    use anchor="middle" or "centre" to calculate a middle position
-    Pass in the object you're working with, and the object_container 
-        (sorry... that's a badly named variable that means: "second object you want to align your first object against")
-        Passing those 2 objects will return an x position value for the first object relative to the second object
+    anchor: string  
+        acceptable values: left,right,center,centre,middle,top,bottom
+        anchor position of the object, or if object is not available, postion relative to screen
+    
+    object: float/int/object
+        acceptable values: 
+            object:  if an object is present, it will be positioned relative to the screen
+            float/int: will be used in place of object's width/height. xy coordinate assumed to be 0
+            
+    relative_object: float/int/object
+        acceptable values: 
+            object: if an relative_object is present, the object will be positioned relative to this instead of the screen
+            float/int: will be used in place of relative_object's width/height. xy coordinat assumed to be 0
+    
+    type: string
+        acceptable values: x,y
+        needed to figure out whether the x/y width/height values should be returned. this argument is not present in standard x/y functions
+        
+    align_to: string
+        acceptible values: left,right,center,centre,middle,top,bottom
+        if an object is present, it will be aligned relative to relative_object (if available) otherwise to the screen
     */ 
-    
-    function x( num, anchor="left", object = null, object_container=null )
+    function xy(num, anchor="top", object = null, relative_object= null, type="x",align_to=null)
     {
-        local object_width = 1
-        local object_container_x = 0 
-        local object_container_width = ::fe.layout.width
         anchor = anchor.tolower()
-        
-        if (object != null &&  typeof object !="float" && typeof object !="integer")
+
+        local object_wh = get_object_wh(type,object)
+        local object_xy = get_object_xy(type,object)
+        local relative_object_wh = get_object_wh(type,relative_object)
+        local relative_object_xy = get_object_xy(type,relative_object)
+            
+        local object_msg = "" //only used for debugging
+
+        if (type=="y")
         {
-            try {
-                object_width = object.width
+            num = num * yconv
+        }
+        else
+        {
+            num = num * xconv
+        }
+    
+        // not much data, factor against the screen
+        if (object == null && relative_object ==null)
+        {
+            return relative_xy(type, num, 0,0, anchor,null,null, align_to)
+        }
+
+        if (pos_debug){
+            try { object_msg = object.msg } catch (e) {}
+            
+            local coord = relative_xy(type, num, object_xy, object_wh, anchor,relative_object_xy, relative_object_wh, align_to)
+                
+            printLine("RELATIVE XY", "\nmessage: " + object_msg + 
+                      "\ntype: " + type + 
+                      "\nanchor: " + anchor +
+                      "\nalign_to: " +align_to +
+                      "\nscreen WxH: " + pos_layout_width + " x " + pos_layout_height +
+                      "\nnum: " + num + 
+                      "\nobject_xy:" + object_xy + 
+                      "\nobject_wh:" + object_wh + 
+                      "\nrelative_object_xy: " + relative_object_xy +
+                      "\nrelative_object_wh: " + relative_object_wh + 
+                      "\nnew xy coord: " + coord + 
+                     "" )
+                
+            return coord
+        }
+        return relative_xy(type, num, object_xy, object_wh, anchor,relative_object_xy, relative_object_wh, align_to)
+    }
+
+    function get_object_wh(type="x",object=null)
+    {
+        if (object != null)
+        {
+            try 
+            {
+                if (type=="y")
+                {
+                    return object.height
+                }
+                else
+                {
+                    return object.width
+                }
             }
-            catch (e) {
-                printLine("object is: ", typeof object)
+            catch (e) 
+            {
+                if (typeof object =="float" || typeof object =="integer")
+                {
+                    if (type=="y")
+                    {
+                        return object * yconv
+                    }
+                    return object * xconv
+                }
             }
         }
-        else if (object != null)
+        return null
+    }
+    function get_object_xy(type="x",object = null)
+    {
+        if (object != null)
         {
-            object_width = object.tofloat() * xconv
-        }
-        
-        
-        if (object_container != null && typeof object_container !="float" && typeof object_container !="integer")
-        {
-            try {
-                object_container_x = object_container.x
-                object_container_width = object_container.width
+            try 
+            {
+                if (type=="y")
+                {
+                    return object.y
+                }
+                else
+                {
+                    return object.x
+                }
             }
-            catch (e) {
-                printLine("object container is: ", typeof object_container)
+            catch (e) 
+            {
+                if (typeof object =="float" || typeof object =="integer")
+                {
+                    if (type=="y")
+                    {
+                        return object * yconv
+                    }
+                    return object * xconv
+                }
             }
         }
-        else if (object_container != null)
+        return null
+    }
+        
+    function relative_xy(type="x", num=0, xy=0, wh=1, anchor="top", rel_xy=null, rel_wh=null, align_to=null)
+    {
+        anchor = anchor.tolower()
+        local screen_wh = pos_layout_width
+        local object_wh = 0 // needed for any calculation that uses an object 
+
+        if (type=="y")
         {
-            object_container_x = object_container.tofloat() * xconv
+            screen_wh = pos_layout_height
         }
         
-        if (anchor == "right")
+        local xy_first = 0 //xy point from top or left corner
+        local xy_center = screen_wh/2 //xy point from center
+        local xy_last = screen_wh // xy point from bottom or right
+            
+        if (align_to==null)
         {
-            return (object_container_width + object_container_x - object_width) - (num * xconv)
+            align_to=anchor 
         }
-        else if (anchor == "middle" || anchor == "centre")
+        
+        if (anchor == "bottom" || anchor=="right")
         {
-            printLine("object_container", object_container_x)
-            printLine("object_width", object_width)
-            printLine("xconv", xconv)
-            return (object_container_width/2) + object_container_x - (object_width / 2) + (num*xconv) 
+            object_wh = wh
+        }
+        else if (anchor == "middle" || anchor=="centre" || anchor=="center")
+        {
+            object_wh = wh/2
+        }
+            
+        if (rel_xy!=null && rel_wh!=null){            
+            //  set values to offset object from another object
+            xy_first = rel_xy
+            xy_center = rel_xy + rel_wh/2
+            xy_last = rel_xy + rel_wh   
+        }
+        else if (wh == null){
+            // offset number from screen size, no object width available so setting this to zero
+            object_wh = 0
+        }
+        
+        if (align_to == "bottom" || align_to=="right")
+        {
+            return xy_last + num - object_wh
+        }
+        else if (align_to == "middle" || align_to=="centre" || align_to=="center")
+        {
+            return xy_center + num - object_wh   
         }
         else 
         {
-            if (object_container != null)
-            {
-                return object_container_width + object_container_x + (num*xconv)
-            }
-             
-           return num * xconv
+            return xy_first + num - object_wh
         }
-    }
-    
-    /* 
-    get y position converted to a scaled value using conversion factor
-    
-    use anchor="bottom" to calculate distance from the bottom edge of the screen instead of the top (which is the default)
-    use anchor="middle" or "centre" to calculate a middle position
-    Pass in the object you're working with, and the object_container 
-        (sorry... that's a badly named variable that means: "second object you want to align your first object against")
-        Passing those 2 objects will return a y position value for the first object relative to the second object
-    */ 
-    
-    function y( num, anchor="top", object = null, object_container=null )
-    {
-        local object_height = 1
-        local object_container_y = 0 
-        local object_container_height = ::fe.layout.height
-        anchor = anchor.tolower()
-        
-        if (object != null &&  typeof object !="float" && typeof object !="integer")
-        {
-            try {
-                object_height = object.height
-            }
-            catch (e) {
-                printLine("object is: ", typeof object)
-            }
-        }
-        else if (object != null)
-        {
-            object_height = object.tofloat() * yconv
-        }
-        
-        
-        if (object_container != null && typeof object_container !="float" && typeof object_container !="integer")
-        {
-            try {
-                object_container_y = object_container.y
-                object_container_height = object_container.height
-            }
-            catch (e) {
-                printLine("object_container_y is: ", typeof object_container_y)
-            }
-        }
-        else if (object_container != null)
-        {
-            object_container_y = object_container.tofloat() * yconv
-        }
-        
-        if (anchor == "bottom")
-        {
-            return (object_container_height + object_container_y - object_height) - (num * yconv)
-        }
-        else if (anchor == "middle" || anchor=="centre")
-        {
-            printLine("object_container", object_container_y)
-            printLine("object_height", object_height)
-            printLine("yconv", yconv)
-            return (object_container_height/2) + object_container_y - (object_height / 2) + (num*yconv) 
-        }
-        else 
-        {
-            if (object_container != null)
-            {
-                return object_container_height + object_container_y + (num*yconv)
-            }
-             
-           return num * yconv
-        }
-    }
-    
+    }    
 }
