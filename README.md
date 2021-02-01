@@ -92,6 +92,38 @@ height(number)
 
 same details as width method
 
+#### Horizontal Space Between Objects
+gets the space between 2 objects, or between an object and the right edge of the screen or other float/integer value
+
+horizontal_space_between(object,object2=null,padding=0)
+returns float value
+
+##### Parameters
+object = initial object
+object2 = object or float/integer value
+padding = extra space to put on the right and left of the object
+
+#### Vertical Space Between Objects
+gets the space between 2 objects, or between an object and the bottom edge of the screen or other float/integer value
+
+vertical_space_between(object,object2=null,padding=0)
+returns float value
+
+##### Parameters
+object = initial object
+object2 = object or float/integer value
+padding = extra space to put on the top and bottom of the object
+
+#### Get Object XY2 
+gets the right x value or bottom y value
+
+get_object_xy2 (type="x", object)
+returns float value
+
+##### Parameters
+type = x or y
+object = an object that you need to get the x value on the right, or y value on the bottom
+
 #### Set Font Height
 This will set several parameters on a font so that its positioning and size is very easily calcuable. 
 It removes margin, sets alignment and a scaled charsize. Alignment and margin can be overriden if necessary. By default this module assumes that most designs were created for a 4:3 or 16:9 layout. Fonts will be scaled slightly smaller on vertical screens, so if your design is vertical, you may need to bump this value up a bit. 

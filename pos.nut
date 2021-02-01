@@ -356,7 +356,55 @@ class Pos
         }
         return relative_xy(type, num, object_xy, object_wh, anchor,relative_object_xy, relative_object_wh, align_to)
     }
+    function vertical_space_between(object,object2=null,padding=0)
+    {
+        return xy_space_between(object,object2,padding,type="y")
+    }
+    function horizontal_space_between(object,object2=null,padding = 0)
+    {
+        return xy_space_between(object,object2,padding,type="x")
+    }
+    function xy_space_between(object = null, object2 = null, padding = 0, type="x")
+    {
+        if (object2 == null )
+        {
+            object2 = pos_layout_width
+            if (type=="y")
+            {
+                object2 = pos_layout_height
+            }
+        }
+        else
+        {
+            object2 = get_object_xy(type,object2)
+        }
 
+        if (padding!=0)
+        {
+            if (type=="y")
+            {
+                padding = padding * yconv
+            }
+            else
+            {
+                padding = padding * xconv
+            }
+        }
+        printLine("padding" , padding)
+        printLine("object2 size", object2)
+        printLine("object2", get_object_xy(type,object2))
+        printLine("object1", get_object_xy2(type,object))
+        return object2 - padding - padding - get_object_xy2(type,object)
+    }
+    // get the right or bottom coordinate
+    function get_object_xy2(type="x", object=null)
+    {
+        if(object != null)
+        {
+           return get_object_wh(type,object) + get_object_xy(type,object) 
+        }
+        return null
+    }
     function get_object_wh(type="x",object=null)
     {
         if (object != null)
@@ -468,5 +516,6 @@ class Pos
         {
             return xy_first + num - object_wh
         }
+        return null
     }    
 }
