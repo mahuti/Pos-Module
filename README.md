@@ -117,7 +117,7 @@ padding = extra space to put on the top and bottom of the object
 #### Get Object XY2 
 gets the right x value or bottom y value
 
-get_object_xy2 (type="x", object)
+get_object_xy2 (type, object)
 returns float value
 
 ##### Parameters
@@ -128,7 +128,7 @@ object = an object that you need to get the x value on the right, or y value on 
 This will set several parameters on a font so that its positioning and size is very easily calcuable. 
 It removes margin, sets alignment and a scaled charsize. Alignment and margin can be overriden if necessary. By default this module assumes that most designs were created for a 4:3 or 16:9 layout. Fonts will be scaled slightly smaller on vertical screens, so if your design is vertical, you may need to bump this value up a bit. 
 
-set_font_height(font_height, text_object, text_align="TopLeft" , text_margin=0)
+scale.set_font_height(font_height, text_object, text_align="TopLeft" , text_margin=0)
 returns false
 
 ##### Parameters
@@ -139,6 +139,20 @@ text_object = this is the object that should be manipulated
 text_align = uses AttractMode's default alignment values TopLeft, TopCentre, TopRight, etc to set the positioning of the text relative to the text object
 
 text_margin = padding normally present around text_object. Set to 0 by default
+
+#### Nearest Neighbor scaling
+Nearest neighbor scaling is what you need to scale pixelated images up without any softness or warping being added to the edges of the images. This function scales both width and height of the object, but only needs one of those dimensions to do its work. There are also two alias functions that do not resize the image, but only return calculated values: nearest_neighbor_width(object,new_width,"top") and nearest_neighbor_height(object,new_height,"top").
+
+##### Parameters
+object = the object to scale (scaling up is better than down)
+num (number) = the pixel size to scale the image to 
+wh= width or height; width is default  the direction in which to scale the image using "num"
+limit = top or bottom; top is default. Nearest neighbor scales in 4s. If you want to make sure an image is no larger than the "num" provided then use top. Otherwise use bottom and the final image will be no smaller than "num". 
+
+returns the new width or height
+
+local my_pixelated_image = fe.add_image("sprite.png", 0,0)
+scale.nearest_neighbor(my_pixelated_image, 1420, "width", "top")
 
 #### Charsize
 charsize(number)

@@ -55,7 +55,24 @@
     scale= "stretch",
     debug= false,
 }
- 
+
+function is_vertical()
+{
+    if (::fe.layout.width > ::fe.layout.height)
+    {
+        return false
+    }
+    return true
+}
+function is_horizontal()
+{
+    if (::fe.layout.width > ::fe.layout.height)
+    {
+        return true
+    }
+    return false
+}
+
 // scale can be stretch, scale, none
 // rotate can be 0, 90, -90 ( any other value will trigger -90)
 
@@ -65,12 +82,15 @@ class Pos
     pos_debug = false
     xconv = 1
     yconv = 1
-    pos_scale = "stretch"
+    center_x_offset = 0
+    center_y_offset = 0
+    pos_scale = "scale"
     pos_layout_width = ::fe.layout.width
     pos_layout_height = ::fe.layout.height
     pos_base_width = 640.0
     pos_base_height = 480.0
     pos_rotate = 0
+    
     
     constructor( properties )
     {
@@ -100,8 +120,10 @@ class Pos
                             case "none":
                                 pos_scale = "none"
                                 break
+                            case "stretch":
+                                pos_scale= "stretch"
                             default:
-                                pos_scale = "stretch"   
+                                pos_scale = "scale"   
                         }
                         break
                    case "debug":
@@ -113,7 +135,20 @@ class Pos
         }
         
         rotate(pos_rotate)
-            
+        set_defaults()
+    }
+    function flip_defaults()
+    {
+        set_defaults(true)
+    }
+    function set_defaults(flip_base_width_and_height=false)
+    {
+        if (flip_base_width_and_height)
+        {
+            local flip = pos_base_width
+            pos_base_width = pos_base_height
+            pos_base_height = flip
+        }
         // width conversion factor
         xconv = pos_layout_width / pos_base_width 
         
@@ -139,9 +174,7 @@ class Pos
     
         printLine("xconv", xconv)
         printLine("yconv", yconv)
-
     }
-
     // Print line
     function printLine(lineheader, x) {
         if (pos_debug){
@@ -190,7 +223,82 @@ class Pos
     {
         return num * yconv
     }
-    
+    function nearest_neighbor_width(object,num,limit="top")
+    {
+        return nearest_neighbor(object,num,"width",limit,true)
+    }
+    function nearest_neighbor_height(object,num,limit="top")
+    {
+        return nearest_neighbor(object,num,"height",limit,true)
+    }
+    function nearest_neighbor(object,num, wh="width",limit="top",calculations_only=false)
+    {
+        local ow,oh, num2
+        ow = object.width
+        oh = object.height
+        
+        if (object.width == null || object.width ==0)
+        {
+            ow = object.subimg_width
+        }
+
+        if (object.height == null || object.height ==0)
+        {
+            oh = object.subimg_height
+        }
+
+        if (wh =="width")
+        {
+           num2 = floor(num/ow * oh * yconv)
+           num = floor(num*xconv)
+        }
+        else
+        {
+          num2 = floor(num/oh * ow * xconv)
+          num = floor(num * yconv)
+        }
+
+        num = num - num%4
+        if (limit="top")
+        {
+            for (local i=4; i>=0; i--)
+            {
+                if ((num2 + i)%4 == 0 )
+                {
+                    num2 = num2+i
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (local i=0; i<=4; i++)
+            {
+                if ((num2 + i)%4 == 0 )
+                {
+                    num2 = num2+i
+                    break;
+                }
+            }
+        }
+        object.smooth = false
+
+        if (calculations_only==false)
+        {
+            if (wh=="width")
+            {
+                object.width = num
+                object.height = num2
+            }
+            else
+            {
+                object.width = num2
+                object.height = num 
+            }
+        }
+       
+        return num
+    }
     /*
         set_font_height is used to adjust text objects to use relatively scaled type
         
@@ -214,12 +322,14 @@ class Pos
             text_object.charsize = charsize(height)
             text_object.margin=0
             
-            // printLine("fontstuff", text_object.glyph_size)
-
             if (text_margin){
                  text_object.margin=text_margin
             }   
+    
             switch (text_align) {
+                case "TopLeft":
+                   text_object.align = Align.TopLeft 
+                    break
                 case "TopCentre":
                    text_object.align = Align.TopCentre 
                     break
@@ -227,13 +337,16 @@ class Pos
                    text_object.align = Align.TopRight 
                     break
                 case "Left":
-                   text_object.align = Align.Left 
+                case "MiddleLeft":
+                   text_object.align = Align.MiddleLeft 
                     break
                 case "Centre":
-                   text_object.align = Align.Centre 
+                case "MiddleCentre":
+                   text_object.align = Align.MiddleCentre 
                     break
                 case "Right":
-                   text_object.align = Align.Right 
+                case "MiddleRight":
+                   text_object.align = Align.MiddleRight 
                     break
                 case "BottomLeft":
                    text_object.align = Align.BottomLeft 
@@ -269,7 +382,7 @@ class Pos
             charsize_conv = wth
         }
         local gs = num * yconv * charsize_conv
-        return gs.tointeger()
+        return floor(gs.tofloat()) // flooring so that the font doesn't go sub-pixel
     }
     
     function x(num, anchor="left", object = null, relative_object= null, align_to=null)
@@ -390,10 +503,7 @@ class Pos
                 padding = padding * xconv
             }
         }
-        printLine("padding" , padding)
-        printLine("object2 size", object2)
-        printLine("object2", get_object_xy(type,object2))
-        printLine("object1", get_object_xy2(type,object))
+
         return object2 - padding - padding - get_object_xy2(type,object)
     }
     // get the right or bottom coordinate
